@@ -1,3 +1,4 @@
+using L5xploderLib;
 using RockwellAutomation.LogixDesigner;
 using RockwellAutomation.LogixDesigner.Logging;
 
@@ -8,6 +9,8 @@ internal static class LogixProjectConverter
     internal static async Task ConvertAsync(string sourceFilePath, string destinationFilePath, IOperationEvent? logger = null, bool overwrite = true)
     {
         using LogixProject project = await LogixProject.OpenLogixProjectAsync(sourceFilePath, logger ?? new StdOutEventLogger());
+
+        FileHelpers.CreateDirectoryForFile(destinationFilePath);
 
         logger?.Status(sourceFilePath, $"Converting to '{destinationFilePath}'...");
         await project.SaveAsAsync(destinationFilePath, overwrite);

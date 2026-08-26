@@ -71,7 +71,7 @@ public static class RestoreAcd
         }
 
         // Ensure the destination directory exists before moving
-        FileHelpers.EnsureDirectoryExists(acdPath);
+        FileHelpers.CreateDirectoryForFile(acdPath);
 
         // Now move the temp file to the original ACD path
         File.Move(tempAcdFile.Path, acdPath, true);

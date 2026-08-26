@@ -22,7 +22,7 @@ public static class L5xImploder
         // depend on another AOI indirectly through a DataType, which needs the assembled document.
         AddOnInstructionOrderer.Order(rootElement!);
 
-        FileHelpers.EnsureDirectoryExists(outputFilePath);
+        FileHelpers.CreateDirectoryForFile(outputFilePath);
         xmlDoc.Save(outputFilePath);
     }
 
