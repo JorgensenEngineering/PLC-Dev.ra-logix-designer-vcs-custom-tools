@@ -10,7 +10,8 @@ internal static class OptionValidator
         var value = result.GetValueOrDefault<string>();
         if (!string.IsNullOrEmpty(value) && !value.EndsWith(requiredExtension, StringComparison.OrdinalIgnoreCase))
         {
-            result.AddError($"Option \"--{result.Option.Name}\" must end with {requiredExtension}");
+            // Option.Name already carries the leading dashes.
+            result.AddError($"Option \"{result.Option.Name}\" must end with {requiredExtension}");
         }
     }
 
@@ -19,7 +20,7 @@ internal static class OptionValidator
         var value = result.GetValueOrDefault<string>();
         if (!string.IsNullOrEmpty(value) && !File.Exists(value))
         {
-            result.AddError($"Option \"--{result.Option.Name}\" must be a file which exists.");
+            result.AddError($"Option \"{result.Option.Name}\" must be a file which exists.");
         }
     }
 }

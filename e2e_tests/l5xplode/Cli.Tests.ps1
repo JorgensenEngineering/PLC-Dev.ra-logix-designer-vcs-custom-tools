@@ -38,12 +38,12 @@ Describe 'l5xplode CLI validation' {
     }
 
     Context 'explode with non-existent L5X file' {
-        It 'reports a validation error on stderr' {
+        It 'reports the file-exists validation message naming the option' {
             $tempDir = New-TestTempDir -Prefix 'l5xplode_cli'
             try {
                 $result = Invoke-L5xplode @('explode', '--l5x', 'C:\nonexistent\file.L5X', '--dir', $tempDir, '--force')
                 $result.ExitCode | Should -Not -Be 0
-                $result.StdErr | Should -Not -BeNullOrEmpty
+                $result.StdErr | Should -Match ([regex]::Escape('Option "--l5x" must be a file which exists.'))
             }
             finally {
                 $ProgressPreference = 'SilentlyContinue'
@@ -53,19 +53,49 @@ Describe 'l5xplode CLI validation' {
     }
 
     Context 'explode with wrong file extension' {
-        It 'reports a validation error when given a .txt file instead of .L5X' {
+        It 'reports the extension validation message naming the option' {
             $tempDir = New-TestTempDir -Prefix 'l5xplode_cli'
             $txtFile = Join-Path $tempDir 'notanl5x.txt'
             Set-Content -Path $txtFile -Value 'hello'
             try {
                 $result = Invoke-L5xplode @('explode', '--l5x', $txtFile, '--dir', $tempDir, '--force')
                 $result.ExitCode | Should -Not -Be 0
-                $result.StdErr | Should -Not -BeNullOrEmpty
+                $result.StdErr | Should -Match ([regex]::Escape('Option "--l5x" must end with .l5x'))
             }
             finally {
                 $ProgressPreference = 'SilentlyContinue'
                 if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
             }
+        }
+    }
+
+    # System.CommandLine 2.0.11 changed Option.Name to include the leading dashes. Our validators
+    # used to prepend their own, producing "----l5x". Exit codes alone did not catch it.
+    Context 'validation messages render the option name exactly once' {
+        It 'never emits an option name with more than two leading dashes' {
+            $tempDir = New-TestTempDir -Prefix 'l5xplode_cli'
+            try {
+                $result = Invoke-L5xplode @('explode', '--l5x', 'C:\nonexistent\file.L5X', '--dir', $tempDir, '--force')
+                $result.StdErr | Should -Not -Match '-{3,}'
+            }
+            finally {
+                $ProgressPreference = 'SilentlyContinue'
+                if (Test-Path $tempDir) { Remove-Item $tempDir -Recurse -Force }
+            }
+        }
+    }
+
+    Context 'dependencies command option validation' {
+        It 'reports error when --l5x is not provided' {
+            $result = Invoke-L5xplode @('dependencies')
+            $result.ExitCode | Should -Not -Be 0
+            $result.StdErr | Should -Match "--l5x.*required|required.*--l5x"
+        }
+
+        It 'reports the file-exists validation message naming the option' {
+            $result = Invoke-L5xplode @('dependencies', '--l5x', 'C:\nonexistent\file.L5X')
+            $result.ExitCode | Should -Not -Be 0
+            $result.StdErr | Should -Match ([regex]::Escape('Option "--l5x" must be a file which exists.'))
         }
     }
 

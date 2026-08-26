@@ -76,4 +76,29 @@ Describe 'l5xgit CLI' {
             $result.StdErr | Should -Match "--dir.*required|required.*--dir"
         }
     }
+
+    Context 'acd2l5x option validation' {
+        It 'reports the extension validation message naming --acd' {
+            $result = Invoke-L5xgit @('acd2l5x', '--acd', 'nope.txt', '--l5x', 'out.L5X')
+            $result.ExitCode | Should -Not -Be 0
+            $result.StdErr | Should -Match ([regex]::Escape('Option "--acd" must end with .acd'))
+        }
+
+        It 'reports the file-exists validation message naming --acd' {
+            $result = Invoke-L5xgit @('acd2l5x', '--acd', 'C:\nonexistent\project.acd', '--l5x', 'out.L5X')
+            $result.ExitCode | Should -Not -Be 0
+            $result.StdErr | Should -Match ([regex]::Escape('Option "--acd" must be a file which exists.'))
+        }
+
+        It 'reports the extension validation message naming --l5x' {
+            $result = Invoke-L5xgit @('acd2l5x', '--acd', 'C:\nonexistent\project.acd', '--l5x', 'out.txt')
+            $result.ExitCode | Should -Not -Be 0
+            $result.StdErr | Should -Match ([regex]::Escape('Option "--l5x" must end with .l5x'))
+        }
+
+        It 'never emits an option name with more than two leading dashes' {
+            $result = Invoke-L5xgit @('acd2l5x', '--acd', 'nope.txt', '--l5x', 'out.L5X')
+            $result.StdErr | Should -Not -Match '-{3,}'
+        }
+    }
 }
