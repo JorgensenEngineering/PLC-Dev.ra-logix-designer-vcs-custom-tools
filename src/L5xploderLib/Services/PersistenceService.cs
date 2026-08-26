@@ -46,7 +46,7 @@ internal abstract class PersistenceService : IPersistenceService
         return LoadElementImpl(absoluteFilePath);
     }
 
-    public IEnumerable<XElement> LoadCustomSerializedElements(string relativeFolderPath, IEnumerable<ICustomSerializer>? serializers)
+    public IEnumerable<XElement> RestoreCustomSerializedContent(string relativeFolderPath, IEnumerable<ICustomSerializer>? serializers, IEnumerable<XElement> elements)
     {
         var absoluteFolderPath = GetAbsoluteFolderPath(relativeFolderPath);
 
@@ -58,7 +58,7 @@ internal abstract class PersistenceService : IPersistenceService
         var results = new List<XElement>();
         foreach (var serializer in serializers)
         {
-            results.AddRange(serializer.Deserialize(absoluteFolderPath));
+            results.AddRange(serializer.Deserialize(absoluteFolderPath, elements));
         }
 
         return results;

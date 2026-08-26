@@ -9,52 +9,76 @@ internal sealed class StructuredTextSerializer : ICustomSerializer
 {
     private string fileExt => Constants.StructuredTextFileExtension;
 
-    public IEnumerable<XElement> Deserialize(string folderPath)
+    public IEnumerable<XElement> Deserialize(string folderPath, IEnumerable<XElement> elements)
     {
-        var results = new List<XElement>();
-
         var stFiles = Directory.GetFiles(folderPath, $"*{fileExt}");
-        var routineNames = stFiles
-            .Select(GetRoutineName)
-            .Distinct();
-
-        foreach (var routineName in routineNames)
+        if (stFiles.Length == 0)
         {
-            var routineElement = new XElement("Routine",
-                new XAttribute("Name", routineName),
-                new XAttribute("Type", "ST")
-                );
+            return [];
+        }
+
+        var routines = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var element in elements.Where(e => e.Name.LocalName == "Routine"))
+        {
+            var name = element.Attribute("Name")?.Value;
+            if (!string.IsNullOrEmpty(name))
+            {
+                routines[name] = element;
+            }
+        }
+
+        var synthesised = new List<XElement>();
+
+        foreach (var routineName in stFiles.Select(GetRoutineName).Distinct())
+        {
+            if (!routines.TryGetValue(routineName, out var routine))
+            {
+                // Exploded before the routine element was persisted alongside the .st file. Rebuild
+                // the little that older layouts recorded so those directories still implode.
+                routine = new XElement("Routine",
+                    new XAttribute("Name", routineName),
+                    new XAttribute("Type", "ST"));
+
+                routines[routineName] = routine;
+                synthesised.Add(routine);
+            }
 
             foreach (var stFile in stFiles.Where(file => GetRoutineName(file) == routineName))
             {
-                var content = File.ReadAllText(stFile);
                 var onlineEditType = GetOnlineEditType(stFile);
+                var stContentElement = FindOrCreateStContent(routine, onlineEditType);
 
-                var stContentElement = new XElement("STContent");
-                if (onlineEditType is not null)
-                {
-                    stContentElement.SetAttributeValue("OnlineEditType", onlineEditType);
-                }
-
-                // For each line in the content (regardless of Windows or Unix-style endings), create a <Line> element
-                var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-                foreach (var (line, lineNum) in lines.Select((line, index) => (line, index)))
-                {
-                    var lineElement = new XElement("Line",
-                        new XAttribute("Number", lineNum),
-                        new XCData(line)
-                    );
-
-                    stContentElement.Add(lineElement);
-                }
-
-                routineElement.Add(stContentElement);
+                // Line numbers are positional, so they are regenerated rather than stored.
+                var lines = File.ReadAllText(stFile).Split(["\r\n", "\n"], StringSplitOptions.None);
+                stContentElement.Add(lines.Select((line, index) =>
+                    new XElement("Line",
+                        new XAttribute("Number", index),
+                        new XCData(line))));
             }
-
-            results.Add(routineElement);
         }
 
-        return results;
+        return synthesised;
+    }
+
+    private static XElement FindOrCreateStContent(XElement routine, string? onlineEditType)
+    {
+        var existing = routine
+            .Elements("STContent")
+            .FirstOrDefault(content => content.Attribute("OnlineEditType")?.Value == onlineEditType);
+
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var created = new XElement("STContent");
+        if (onlineEditType is not null)
+        {
+            created.SetAttributeValue("OnlineEditType", onlineEditType);
+        }
+
+        routine.Add(created);
+        return created;
     }
 
     public IEnumerable<ElementFile> Serialize(XElement element, string elementBaseFile)
@@ -113,15 +137,10 @@ internal sealed class StructuredTextSerializer : ICustomSerializer
                 .Select(line => line.Value)
                 .ToList();
 
-            //
-            // We no longer keep the XML file with a link to the stContent file, so no need to mutate the XElement.
-            // Just left this for now in case we change our minds.
-            //
-            // // Mutate the XElement to remove the <Line> elements
-            // stContentElement.Elements("Line").Remove();
-
-            // // Set the attribute for the structured text content file
-            // stContentElement.SetAttributeValue("stContentFile", Path.GetFileName(fileName));
+            // Only the lines move out to the .st file. Everything else on the routine and on
+            // <STContent> stays in the element file, so descriptions, attributes and any other
+            // children survive the round trip without this serializer needing to know about them.
+            stContentElement.Elements("Line").Remove();
 
             // Create the .st file with the content
             results.Add(
@@ -133,6 +152,8 @@ internal sealed class StructuredTextSerializer : ICustomSerializer
                 }
             );
         }
+
+        results.Add(new L5xElementFile { BaseFilePath = elementBaseFile, Element = element });
 
         return results;
     }

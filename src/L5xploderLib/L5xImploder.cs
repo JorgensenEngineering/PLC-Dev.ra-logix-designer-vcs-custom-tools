@@ -93,8 +93,6 @@ public static class L5xImploder
 
         var elements = new List<XElement>();
 
-        elements.AddRange(persistenceService.LoadCustomSerializedElements(folderPath, config.CustomSerializers));
-
         if (hasChildConfig)
         {
             // If a child configuration exists files are one level deeper in their identically named subdirectories
@@ -143,6 +141,10 @@ public static class L5xImploder
                 .OrderBy(x => x.file, StringComparer.OrdinalIgnoreCase)
                 .Select(x => x.element));
         }
+
+        // Runs after the elements are loaded so companion files can be merged back into the element
+        // they were extracted from, rather than the serializer having to rebuild that element.
+        elements.AddRange(persistenceService.RestoreCustomSerializedContent(folderPath, config.CustomSerializers, elements));
 
         // Undo any transformations
         config.Transformers?.ToList().ForEach(transformer =>

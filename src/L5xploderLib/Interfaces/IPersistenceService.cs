@@ -18,7 +18,7 @@ public interface IPersistenceService
 
     XElement LoadElement(string relativeFilePathWithoutExtension);
 
-    IEnumerable<XElement> LoadCustomSerializedElements(string relativeFolderPath, IEnumerable<ICustomSerializer>? serializers);
+    IEnumerable<XElement> RestoreCustomSerializedContent(string relativeFolderPath, IEnumerable<ICustomSerializer>? serializers, IEnumerable<XElement> elements);
 
     XDocument LoadRoot();
 

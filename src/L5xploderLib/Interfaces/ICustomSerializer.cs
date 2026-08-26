@@ -11,7 +11,11 @@ public interface ICustomSerializer
     IEnumerable<ElementFile> Serialize(XElement element, string elementBaseFile);
 
     /// <summary>
-    /// Rehydrates the parent XElement from the serialized data folder.
+    /// Restores content that <see cref="Serialize"/> moved out into companion files, back into the
+    /// elements already loaded from this folder. Working against the loaded elements is what lets
+    /// the companion file hold only the extracted content, leaving everything else on the element
+    /// untouched in whatever format the persistence layer uses.
+    /// Returns any elements that had to be synthesised because no loaded element matched.
     /// </summary>
-    IEnumerable<XElement> Deserialize(string folderPath);
+    IEnumerable<XElement> Deserialize(string folderPath, IEnumerable<XElement> elements);
 }
