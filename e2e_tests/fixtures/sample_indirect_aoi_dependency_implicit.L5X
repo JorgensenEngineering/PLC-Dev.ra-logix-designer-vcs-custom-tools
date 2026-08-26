@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Indirect AOI dependency fixture with NO explicit <Dependencies> blocks, and no Dependencies export
+  option — what Logix Designer produces when exported through the GUI or an older SDK.
+
+  The same ConsumerAOI -> BridgeUDT -> NestedAOI chain as sample_indirect_aoi_dependency.L5X, but the
+  only evidence of it is the DataType attributes: ConsumerAOI has a Parameter of type BridgeUDT, and
+  BridgeUDT has a Member of type NestedAOI. Nothing declares the relationship.
+
+  The AOI order below is the "original" order and deliberately contradicts that dependency:
+  ConsumerAOI is written before NestedAOI.
+-->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="38.00" TargetName="IndirectImplicitProject" TargetType="Controller" ContainsContext="false" Owner="TestUser" ExportDate="Mon Apr 07 10:00:00 2025" ExportOptions="NoRawData L5KData DecoratedData ForceProtectedEncoding AllProjDocTrans">
+  <Controller Use="Target" Name="IndirectImplicitProject" ProcessorType="1756-L85E" MajorRev="38" MinorRev="11" TimeSlice="20" ShareUnusedTimeSlice="1" ProjectCreationDate="Mon Jan 01 00:00:00 2024" LastModifiedDate="Mon Apr 07 10:00:00 2025" SFCExecutionControl="CurrentActive" SFCRestartPosition="MostRecent" SFCLastScan="DontScan" ProjectSN="16#0000_0000" MatchProjectToController="false" CanUseRPIFromProducer="false" InhibitAutomaticFirmwareUpdate="0" PassThroughConfiguration="EnabledWithAppend" DownloadProjectDocumentationAndExtendedProperties="true" DownloadProjectCustomProperties="true" ReportMinorOverflow="false">
+    <DataTypes>
+      <DataType Name="BridgeUDT" Family="NoFamily" Class="User">
+        <Members>
+          <Member Name="Count" DataType="DINT" Dimension="0" Radix="Decimal" Hidden="false" ExternalAccess="Read/Write" />
+          <Member Name="Nested" DataType="NestedAOI" Dimension="0" Radix="NullType" Hidden="false" ExternalAccess="Read/Write" />
+        </Members>
+      </DataType>
+    </DataTypes>
+    <Modules>
+      <Module Name="Local" CatalogNumber="1756-L85E" Vendor="1" ProductType="14" ProductCode="166" Major="36" Minor="11" ParentModule="Local" ParentModPortId="1" Inhibited="false" MajorFault="true">
+        <EKey State="Disabled" />
+        <Ports>
+          <Port Id="1" Address="0" Type="ICP" Upstream="false" />
+        </Ports>
+      </Module>
+    </Modules>
+    <AddOnInstructionDefinitions>
+
+      <!-- Original position 1. Reaches NestedAOI only through the BridgeUDT parameter type. -->
+      <AddOnInstruction Name="ConsumerAOI" Revision="1.0" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2024-01-01T00:00:00.000Z" CreatedBy="TestUser" EditedDate="2024-01-01T00:00:00.000Z" EditedBy="TestUser" SoftwareRevision="v38.00">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="Bridge" TagType="Base" DataType="BridgeUDT" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" />
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text><![CDATA[NOP();]]></Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstruction>
+
+      <!-- Original position 2. No dependencies. -->
+      <AddOnInstruction Name="FirstIndependentAOI" Revision="1.0" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2024-01-01T00:00:00.000Z" CreatedBy="TestUser" EditedDate="2024-01-01T00:00:00.000Z" EditedBy="TestUser" SoftwareRevision="v38.00">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text><![CDATA[NOP();]]></Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstruction>
+
+      <!-- Original position 3. ConsumerAOI must end up after this one. -->
+      <AddOnInstruction Name="NestedAOI" Revision="1.0" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2024-01-01T00:00:00.000Z" CreatedBy="TestUser" EditedDate="2024-01-01T00:00:00.000Z" EditedBy="TestUser" SoftwareRevision="v38.00">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="InputVal" TagType="Base" DataType="DINT" Usage="Input" Radix="Decimal" Required="true" Visible="true" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="DINT" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text><![CDATA[NOP();]]></Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstruction>
+
+      <!-- Original position 4. No dependencies. -->
+      <AddOnInstruction Name="LastIndependentAOI" Revision="1.0" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2024-01-01T00:00:00.000Z" CreatedBy="TestUser" EditedDate="2024-01-01T00:00:00.000Z" EditedBy="TestUser" SoftwareRevision="v38.00">
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="Logic" Type="RLL">
+            <RLLContent>
+              <Rung Number="0" Type="N">
+                <Text><![CDATA[NOP();]]></Text>
+              </Rung>
+            </RLLContent>
+          </Routine>
+        </Routines>
+      </AddOnInstruction>
+
+    </AddOnInstructionDefinitions>
+    <Tags />
+    <Programs />
+    <Tasks />
+  </Controller>
+</RSLogix5000Content>

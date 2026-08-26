@@ -12,6 +12,7 @@ class Program
 
         rootCommand.Subcommands.Add(Explode.Command);
         rootCommand.Subcommands.Add(Implode.Command);
+        rootCommand.Subcommands.Add(Dependencies.Command);
 
         int result;
         try

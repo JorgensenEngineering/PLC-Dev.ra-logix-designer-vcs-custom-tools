@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using System.Xml.XPath;
+using L5xploderLib.DependencySort.Services;
 using L5xploderLib.Interfaces;
 
 namespace L5xploderLib;
@@ -16,6 +17,10 @@ public static class L5xImploder
         ValidateRootElement(rootElement);
 
         ProcessConfigs(string.Empty, rootElement!, configs, persistenceService);
+
+        // Add-On Instruction ordering is resolved here rather than per-config because an AOI can
+        // depend on another AOI indirectly through a DataType, which needs the assembled document.
+        AddOnInstructionOrderer.Order(rootElement!);
 
         FileHelpers.EnsureDirectoryExists(outputFilePath);
         xmlDoc.Save(outputFilePath);
