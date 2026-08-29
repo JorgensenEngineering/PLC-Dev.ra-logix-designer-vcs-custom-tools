@@ -112,6 +112,13 @@ public static class Commit
 
     private static async Task<bool> CommitFromAcd(string acdPath, L5xGitConfig config, string commitMessage, IGitService gitService, IOperationEvent? logger, bool unsafeSkipDependencyCheck)
     {
+        // Asked before the ACD conversion so a declined upgrade does not waste that work.
+        if (!UserPrompts.ConfirmSchemaUpgrade(config.DestinationPath, force: false))
+        {
+            logger?.Error(config.DestinationPath, "Commit canceled without upgrading the exploded schema.");
+            return false;
+        }
+
         logger?.Status(acdPath, "Copying ACD to temp path...");
         var tempAcdFile = TempFile.CopyToTempPath(acdPath);
         var tempL5xFile = TempFile.FromTempFileWithNewExtension(tempAcdFile, ".L5X");
@@ -119,6 +126,7 @@ public static class Commit
         await LogixProjectConverter.ConvertAsync(tempAcdFile.Path, tempL5xFile.Path, logger: logger, overwrite: false);
 
         logger?.Status(tempL5xFile.Path, "l5xploding L5X...");
+
         ExplodeL5x(tempL5xFile.Path, config.DestinationPath, unsafeSkipDependencyCheck);
 
         logger?.Status(config.DestinationPath, "Committing to Git repository...");

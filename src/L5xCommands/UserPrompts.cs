@@ -162,16 +162,36 @@ internal static class UserPrompts
         return true;
     }
 
+    public static bool ConfirmSchemaUpgrade(string directory, bool force)
+    {
+        // A missing options file means the directory holds no exploded content yet, not an old layout.
+        var options = L5xSerializationOptions.LoadFromExplodedDir(directory);
+        if (options is null)
+        {
+            return true;
+        }
+
+        var version = ExplodedSchemaVersion.From(options);
+        if (!version.IsOlderThanCurrent)
+        {
+            return true;
+        }
+
+        Console.WriteLine("");
+        Console.WriteLine(
+            $"'{directory}' holds exploded schema version {version} and will be upgraded to version {ExplodedSchemaVersion.Current}. " +
+            "Tool versions older than this one will no longer be able to (correctly) implode.");
+
+        return force || PromptYesNo("Do you want to upgrade it?");
+    }
+
     private static bool PromptYesNo(string prompt)
     {
-        string? response;
+        var question = $"{prompt} (y/n): ";
         do
         {
-            Console.Write($"{prompt} (y/n): ");
-            response = Console.ReadLine();
-            if (response == null)
-                continue;
-            response = response.Trim();
+            Console.Write(question);
+            var response = ReadLineOrThrow(question).Trim();
             if (response.Equals("y", StringComparison.OrdinalIgnoreCase) || response.Equals("yes", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
@@ -183,13 +203,26 @@ internal static class UserPrompts
         } while (true);
     }
 
+    /// <summary>
+    /// Reads a line, treating end-of-input as fatal. Console.ReadLine returns null forever once
+    /// stdin is closed or exhausted, which would otherwise spin these prompt loops indefinitely.
+    /// </summary>
+    private static string ReadLineOrThrow(string prompt) =>
+        Console.ReadLine() ?? throw EndOfInput(prompt);
+
+    private static InvalidOperationException EndOfInput(string prompt) =>
+        new($"Cannot prompt for input because standard input has ended (no interactive console). " +
+            $"Prompt was: '{prompt.Trim()}'." +
+            Environment.NewLine +
+            "Supply the value through command-line options or the configuration file, or use --force where supported.");
+
     private static string PromptForFilePath(string prompt, bool mustExist = false)
     {
-        string? path;
+        string path;
         do
         {
             Console.Write(prompt);
-            path = Console.ReadLine()?.Trim();
+            path = ReadLineOrThrow(prompt).Trim();
 
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -208,11 +241,11 @@ internal static class UserPrompts
 
     private static string PromptForDirectory(string prompt, bool mustExist = false)
     {
-        string? path;
+        string path;
         ReadLine.AutoCompletionHandler = new DirectoryAutoCompleteHandler();
         do
         {
-            path = ReadLine.Read(prompt)?.Trim();
+            path = (ReadLine.Read(prompt) ?? throw EndOfInput(prompt)).Trim();
 
             if (string.IsNullOrWhiteSpace(path))
             {

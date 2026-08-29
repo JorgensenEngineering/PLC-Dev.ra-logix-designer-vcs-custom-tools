@@ -33,12 +33,15 @@ function Invoke-Tool {
     $pinfo.Arguments = ($Arguments -join ' ')
     $pinfo.RedirectStandardOutput = $true
     $pinfo.RedirectStandardError  = $true
+    # Closed immediately so an unexpected prompt hits EOF and errors out instead of blocking.
+    $pinfo.RedirectStandardInput  = $true
     $pinfo.UseShellExecute = $false
     $pinfo.CreateNoWindow  = $true
 
     $proc = [System.Diagnostics.Process]::new()
     $proc.StartInfo = $pinfo
     $proc.Start() | Out-Null
+    $proc.StandardInput.Close()
     $stdout = $proc.StandardOutput.ReadToEnd()
     $stderr = $proc.StandardError.ReadToEnd()
     $proc.WaitForExit()

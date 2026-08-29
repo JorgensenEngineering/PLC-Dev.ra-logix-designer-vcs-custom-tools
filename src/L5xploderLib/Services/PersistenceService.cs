@@ -13,6 +13,8 @@ internal abstract class PersistenceService : IPersistenceService
 {
     public required L5xSerializationOptions SerializationOptions { get; init; }
 
+    public ExplodedSchemaVersion SchemaVersion => ExplodedSchemaVersion.From(SerializationOptions);
+
     public required string ExplodedDir { get; init; }
 
     // Use a fixed subdir for output because we have to clean the directory when saving

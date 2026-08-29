@@ -59,6 +59,12 @@ public static class Explode
 
     private static void Execute(string l5xFile, string directory, bool force, bool prettyAttributes, L5xSerializationFormat format, bool unsafeSkipDependencyCheck)
     {
+        if (!UserPrompts.ConfirmSchemaUpgrade(directory, force))
+        {
+            Console.WriteLine($"Exiting without l5xploding '{l5xFile}' into directory '{directory}'.");
+            return;
+        }
+
         bool confirmed = force || UserPrompts.PromptForDirectoryOverwriteIfExists(Paths.GetExplodedSubDir(directory));
         if (!confirmed)
         {

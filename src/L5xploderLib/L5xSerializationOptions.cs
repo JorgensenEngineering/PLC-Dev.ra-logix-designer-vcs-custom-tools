@@ -5,6 +5,14 @@ namespace L5xploderLib;
 
 public sealed class L5xSerializationOptions
 {
+    /// <summary>
+    /// Version of the exploded on-disk layout. Null when read from a directory that predates
+    /// schema stamping; always written as <see cref="ExplodedSchemaVersion.Current"/>.
+    /// Prefer <see cref="ExplodedSchemaVersion.From"/> over reading this directly.
+    /// </summary>
+    [YamlMember(Alias = "schema_version", Order = -1)]
+    public int? SchemaVersion { get; init; }
+
     [YamlMember(Alias = "serialization_format")]
     public L5xSerializationFormat Format { get; init; }
 
@@ -38,9 +46,26 @@ public sealed class L5xSerializationOptions
             .WithIndentedSequences()
             .Build();
 
-        var yaml = serializer.Serialize(this);
+        var yaml = serializer.Serialize(WithCurrentSchemaVersion());
         File.WriteAllText(filePath, yaml);
     }
+
+    private L5xSerializationOptions WithCurrentSchemaVersion() => new()
+    {
+        SchemaVersion = ExplodedSchemaVersion.Current.Value,
+        Format = Format,
+        PrettyXmlAttributes = PrettyXmlAttributes,
+        OmitExportDate = OmitExportDate,
+        UnsafeSkipDependencyCheck = UnsafeSkipDependencyCheck,
+    };
+
+    /// <summary>
+    /// Loads the options stamped into an exploded directory, or null when the directory holds no
+    /// exploded content. Every explode writes this file, so its absence means "nothing here"
+    /// rather than "an old layout".
+    /// </summary>
+    public static L5xSerializationOptions? LoadFromExplodedDir(string explodedDir) =>
+        LoadFromFile(Paths.GetOptionsFilePath(explodedDir));
 
     public static L5xSerializationOptions? LoadFromFile(string filePath)
     {

@@ -12,6 +12,8 @@ public static class L5xImploder
         IEnumerable<L5xExploderConfig> configs,
         IPersistenceService persistenceService)
     {
+        persistenceService.SchemaVersion.EnsureSupported(persistenceService.ExplodedSubDir);
+
         var xmlDoc = persistenceService.LoadRoot();
         var rootElement = xmlDoc.Root;
         ValidateRootElement(rootElement);

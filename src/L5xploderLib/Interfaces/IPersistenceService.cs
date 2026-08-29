@@ -10,6 +10,8 @@ public interface IPersistenceService
 {
     L5xSerializationOptions SerializationOptions { get; }
 
+    ExplodedSchemaVersion SchemaVersion { get; }
+
     string ExplodedSubDir { get; }
 
     string RootDocumentPath { get; }
