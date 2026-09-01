@@ -179,10 +179,10 @@ internal static class UserPrompts
 
         Console.WriteLine("");
         Console.WriteLine(
-            $"'{directory}' holds exploded schema version {version} and will be upgraded to version {ExplodedSchemaVersion.Current}. " +
-            "Tool versions older than this one will no longer be able to (correctly) implode.");
+            $"'{directory}' is at schema version {version} and will be upgraded to version {ExplodedSchemaVersion.Current}. " +
+            "Prior versions of this tool may not be able to implode the upgraded schema and must be upgraded.");
 
-        return force || PromptYesNo("Do you want to upgrade it?");
+        return force || PromptYesNo("Do you want to continue?");
     }
 
     private static bool PromptYesNo(string prompt)
@@ -210,11 +210,12 @@ internal static class UserPrompts
     private static string ReadLineOrThrow(string prompt) =>
         Console.ReadLine() ?? throw EndOfInput(prompt);
 
-    private static InvalidOperationException EndOfInput(string prompt) =>
+    private static InvalidOperationException EndOfInput(string prompt, Exception? inner = null) =>
         new($"Cannot prompt for input because standard input has ended (no interactive console). " +
             $"Prompt was: '{prompt.Trim()}'." +
             Environment.NewLine +
-            "Supply the value through command-line options or the configuration file, or use --force where supported.");
+            "Supply the value through command-line options or the configuration file, or use --force where supported.",
+            inner);
 
     private static string PromptForFilePath(string prompt, bool mustExist = false)
     {
@@ -245,7 +246,7 @@ internal static class UserPrompts
         ReadLine.AutoCompletionHandler = new DirectoryAutoCompleteHandler();
         do
         {
-            path = (ReadLine.Read(prompt) ?? throw EndOfInput(prompt)).Trim();
+            path = ReadDirectoryLine(prompt).Trim();
 
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -260,5 +261,24 @@ internal static class UserPrompts
 
             return path;
         } while (true);
+    }
+
+    /// <summary>
+    /// ReadLine drives tab-completion through Console.ReadKey, which throws rather than returning
+    /// null when there is no interactive console, so the end-of-input case is caught here instead.
+    /// </summary>
+    private static string ReadDirectoryLine(string prompt)
+    {
+        string? input;
+        try
+        {
+            input = ReadLine.Read(prompt);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw EndOfInput(prompt, ex);
+        }
+
+        return input ?? throw EndOfInput(prompt);
     }
 }

@@ -98,6 +98,37 @@ l5xgit commit --acd path/to/project.ACD --unsafe-skip-dependency-check
 > so in cases where no manual merging / removal / addition of AOIs is taking place outside
 > of this tool, skipping this check should not cause import errors after the implode operation.
 
+## Exploded Schema Version
+
+The exploded directory layout has had a schema version attribute added. Every explode now stamps a `schema_version` into
+`RSLogix5000Content/export-options.yaml`, and that stamp determines which versions of these tools can safely implode the directory again.
+
+The rules are:
+
+- This tool can implode a directory stamped at **its own version or older**.
+- This tool **refuses** to implode a directory stamped **newer** than it understands, rather than
+  silently producing a potentially incomplete `.L5X`.
+- Re-exploding an older directory with a newer tool **upgrades** the stamp. You are prompted to
+  confirm first, since the upgrade makes the directory unreadable to older tools. Use `--force`
+  to accept without prompting.
+
+> **Recommendation:** Standardize on a single version of these tools across everyone who shares a
+> repository, and coordinate upgrading all users at the same time.
+
+If a teammate pushes a directory produced by a newer tool, you will see:
+
+```
+The exploded directory '...' was created using schema version 3, but the version of this tool you
+are running only supports up to version 2. Imploding it may produce an incorrect L5X.
+Update to a matching version of this tool.
+```
+
+The fix is to upgrade your copy of the tool to match — the exploded content itself is fine.
+
+Directories exploded before schema stamping was introduced are treated as version 1 and still
+implode.  However early versions of this tool lack any schema vresion check, and may produce
+inconsistent results if asked to implode a newer exploded schema.
+
 ## Integration with Logix Designer
 
 Some level of integration with Logix Designer can be achieved by using Custom Tools xml which is produced during the build
