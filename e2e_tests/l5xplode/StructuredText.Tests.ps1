@@ -196,3 +196,152 @@ Describe 'Structured text routine round trip' {
         }
     }
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A routine edited online carries several <STContent> elements distinguished by an
+# OnlineEditType attribute, which the exploded layout encodes as a file name infix.
+# ─────────────────────────────────────────────────────────────────────────────
+Describe 'Structured text routines with online edits' {
+
+    Context 'exploded layout' {
+        BeforeAll {
+            $script:tempDir = New-TestTempDir -Prefix 'st_onlineedit_layout'
+            $l5xFile = Join-Path $fixturesDir 'sample_structured_text_online_edits.L5X'
+
+            $script:explodeResult = Invoke-L5xplode @('explode', '--l5x', $l5xFile, '--dir', $script:tempDir, '--force')
+            if ($script:explodeResult.ExitCode -ne 0) {
+                throw "Explode failed: $($script:explodeResult.StdErr)"
+            }
+
+            $script:aoiRoutines     = Join-Path $script:tempDir 'RSLogix5000Content/AddOnInstructionDefinitions/StAoi/Routines'
+            $script:programRoutines = Join-Path $script:tempDir 'RSLogix5000Content/Programs/MainProgram/Routines'
+        }
+
+        AfterAll {
+            $ProgressPreference = 'SilentlyContinue'
+            if (Test-Path $script:tempDir) { Remove-Item $script:tempDir -Recurse -Force }
+        }
+
+        It 'exits with code 0' {
+            $script:explodeResult.ExitCode | Should -Be 0
+        }
+
+        It 'names each .st file after its OnlineEditType' {
+            Join-Path $script:aoiRoutines 'AoiOnlineEdit.Original.st' | Should -Exist
+            Join-Path $script:aoiRoutines 'AoiOnlineEdit.Pending.st'  | Should -Exist
+        }
+
+        It 'writes no untyped .st file when every STContent is typed' {
+            Join-Path $script:aoiRoutines 'AoiOnlineEdit.st' | Should -Not -Exist
+        }
+
+        It 'writes an untyped .st alongside a typed one when the routine mixes both' {
+            Join-Path $script:programRoutines 'ProgramOnlineEdit.st'         | Should -Exist
+            Join-Path $script:programRoutines 'ProgramOnlineEdit.Pending.st' | Should -Exist
+        }
+
+        It 'writes exactly one routine element file per routine, not one per STContent' {
+            @(Get-ChildItem $script:aoiRoutines -Filter '*.xml').Count | Should -Be 1
+            Join-Path $script:aoiRoutines 'AoiOnlineEdit.xml' | Should -Exist
+        }
+
+        It 'does not collide the untyped .st with the routine element file' {
+            $stFiles = @(Get-ChildItem $script:programRoutines -Filter '*.st' | Select-Object -ExpandProperty Name)
+            $stFiles | Should -Contain 'ProgramOnlineEdit.st'
+            Join-Path $script:programRoutines 'ProgramOnlineEdit.xml' | Should -Exist
+            $stFiles.Count | Should -Be 2
+        }
+
+        It 'produces a distinct file for every STContent in the fixture' {
+            $all = @(Get-ChildItem $script:tempDir -Recurse -Filter '*.st')
+            $all.Count | Should -Be 4
+            @($all | Select-Object -ExpandProperty FullName -Unique).Count | Should -Be 4
+        }
+
+        It 'routes each STContent body to its own file' {
+            $original = Get-Content (Join-Path $script:aoiRoutines 'AoiOnlineEdit.Original.st') -Raw
+            $pending  = Get-Content (Join-Path $script:aoiRoutines 'AoiOnlineEdit.Pending.st') -Raw
+
+            $original | Should -Match ([regex]::Escape('Counter := Counter + 1;'))
+            $original | Should -Not -Match ([regex]::Escape('Counter := Counter + 2;'))
+            $pending  | Should -Match ([regex]::Escape('Counter := Counter + 2;'))
+            $pending  | Should -Not -Match ([regex]::Escape('Counter := Counter + 1;'))
+        }
+
+        It 'keeps the OnlineEditType attributes in the routine element file' {
+            $xml = Get-Content (Join-Path $script:aoiRoutines 'AoiOnlineEdit.xml') -Raw
+            $xml | Should -Match 'OnlineEditType="Original"'
+            $xml | Should -Match 'OnlineEditType="Pending"'
+            $xml | Should -Not -Match '<Line'
+        }
+    }
+
+    Context 'implode restores the online edits' {
+        BeforeAll {
+            $script:tempDir = New-TestTempDir -Prefix 'st_onlineedit_roundtrip'
+            $l5xFile = Join-Path $fixturesDir 'sample_structured_text_online_edits.L5X'
+
+            $explodeResult = Invoke-L5xplode @('explode', '--l5x', $l5xFile, '--dir', $script:tempDir, '--force')
+            if ($explodeResult.ExitCode -ne 0) { throw "Explode failed: $($explodeResult.StdErr)" }
+
+            $script:outputL5x = Join-Path $script:tempDir 'st_onlineedit_out.L5X'
+            $script:implodeResult = Invoke-L5xplode @('implode', '--dir', $script:tempDir, '--l5x', $script:outputL5x, '--force')
+            if ($script:implodeResult.ExitCode -ne 0) { throw "Implode failed: $($script:implodeResult.StdErr)" }
+
+            [xml]$script:xml = Get-Content $script:outputL5x
+            $script:aoiRoutine = $script:xml.RSLogix5000Content.Controller.AddOnInstructionDefinitions.AddOnInstruction.Routines.Routine
+            $script:programRoutine = $script:xml.RSLogix5000Content.Controller.Programs.Program.Routines.Routine
+        }
+
+        AfterAll {
+            $ProgressPreference = 'SilentlyContinue'
+            if (Test-Path $script:tempDir) { Remove-Item $script:tempDir -Recurse -Force }
+        }
+
+        It 'implode exits with code 0' {
+            $script:implodeResult.ExitCode | Should -Be 0
+        }
+
+        It 'restores both STContent elements on the AOI routine' {
+            @($script:aoiRoutine.STContent).Count | Should -Be 2
+        }
+
+        It 'restores the OnlineEditType attribute on each STContent' {
+            $types = @($script:aoiRoutine.STContent | ForEach-Object { $_.OnlineEditType })
+            $types | Should -Contain 'Original'
+            $types | Should -Contain 'Pending'
+        }
+
+        It 'pairs each OnlineEditType with its own lines' {
+            $original = $script:aoiRoutine.STContent | Where-Object { $_.OnlineEditType -eq 'Original' }
+            $pending  = $script:aoiRoutine.STContent | Where-Object { $_.OnlineEditType -eq 'Pending' }
+
+            @($original.Line).Count | Should -Be 2
+            @($pending.Line).Count  | Should -Be 3
+            @($original.Line)[0].InnerText | Should -BeExactly 'Counter := Counter + 1;'
+            @($pending.Line)[0].InnerText  | Should -BeExactly 'Counter := Counter + 2;'
+        }
+
+        It 'renumbers the lines of each STContent from zero' {
+            $pending = $script:aoiRoutine.STContent | Where-Object { $_.OnlineEditType -eq 'Pending' }
+            @($pending.Line | ForEach-Object { $_.Number }) | Should -Be @('0', '1', '2')
+        }
+
+        It 'restores the untyped STContent without an OnlineEditType attribute' {
+            $untyped = @($script:programRoutine.STContent | Where-Object { -not $_.OnlineEditType })
+            $untyped.Count | Should -Be 1
+            @($untyped[0].Line)[0].InnerText | Should -BeExactly '(* accepted content, no OnlineEditType *)'
+        }
+
+        It 'restores the typed STContent on the mixed routine' {
+            $pending = @($script:programRoutine.STContent | Where-Object { $_.OnlineEditType -eq 'Pending' })
+            $pending.Count | Should -Be 1
+            @($pending[0].Line)[0].InnerText | Should -BeExactly '(* pending content *)'
+        }
+
+        It 'preserves the routine descriptions' {
+            $script:aoiRoutine.Description.InnerText | Should -Match 'AOI routine with an online edit in progress'
+            $script:programRoutine.Description.InnerText | Should -Match 'Program routine mixing accepted and pending content'
+        }
+    }
+}

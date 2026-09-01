@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Structured text fixture covering online edits.
+
+  A routine being edited online carries more than one <STContent>, distinguished by an
+  OnlineEditType attribute. The exploded layout encodes that attribute in the .st file name
+  as an infix (Routine.<OnlineEditType>.st), so this fixture exists to prove the infix is
+  written, is read back, and does not collide with the routine's own element file.
+
+  Two shapes are covered:
+    AoiOnlineEdit     - two typed contents (Original + Pending), so no plain .st file
+    ProgramOnlineEdit - an untyped content alongside a typed one, so Routine.st and
+                        Routine.Pending.st must coexist with Routine.xml
+
+  The OnlineEditType values are treated as opaque strings by the serializer; they are only
+  ever used to build and parse the file name.
+-->
+<RSLogix5000Content SchemaRevision="1.0" SoftwareRevision="38.00" TargetName="StOnlineEditProject" TargetType="Controller" ContainsContext="false" Owner="TestUser" ExportDate="Mon Apr 07 10:00:00 2025" ExportOptions="NoRawData L5KData DecoratedData Dependencies ForceProtectedEncoding AllProjDocTrans">
+  <Controller Use="Target" Name="StOnlineEditProject" ProcessorType="1756-L85E" MajorRev="38" MinorRev="11" TimeSlice="20" ShareUnusedTimeSlice="1" ProjectCreationDate="Mon Jan 01 00:00:00 2024" LastModifiedDate="Mon Apr 07 10:00:00 2025" SFCExecutionControl="CurrentActive" SFCRestartPosition="MostRecent" SFCLastScan="DontScan" ProjectSN="16#0000_0000" MatchProjectToController="false" CanUseRPIFromProducer="false" InhibitAutomaticFirmwareUpdate="0" PassThroughConfiguration="EnabledWithAppend" DownloadProjectDocumentationAndExtendedProperties="true" DownloadProjectCustomProperties="true" ReportMinorOverflow="false">
+    <DataTypes />
+    <Modules>
+      <Module Name="Local" CatalogNumber="1756-L85E" Vendor="1" ProductType="14" ProductCode="166" Major="36" Minor="11" ParentModule="Local" ParentModPortId="1" Inhibited="false" MajorFault="true">
+        <EKey State="Disabled" />
+        <Ports>
+          <Port Id="1" Address="0" Type="ICP" Upstream="false" />
+        </Ports>
+      </Module>
+    </Modules>
+    <AddOnInstructionDefinitions>
+      <AddOnInstruction Name="StAoi" Revision="1.0" ExecutePrescan="false" ExecutePostscan="false" ExecuteEnableInFalse="false" CreatedDate="2024-01-01T00:00:00.000Z" CreatedBy="TestUser" EditedDate="2024-01-01T00:00:00.000Z" EditedBy="TestUser" SoftwareRevision="v38.00">
+        <Dependencies />
+        <Parameters>
+          <Parameter Name="EnableIn" TagType="Base" DataType="BOOL" Usage="Input" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="EnableOut" TagType="Base" DataType="BOOL" Usage="Output" Radix="Decimal" Required="false" Visible="false" ExternalAccess="Read Only">
+            <DefaultData Format="L5K"><![CDATA[0]]></DefaultData>
+            <DefaultData Format="Decorated"><DataValue DataType="BOOL" Radix="Decimal" Value="0" /></DefaultData>
+          </Parameter>
+          <Parameter Name="Counter" TagType="Base" DataType="DINT" Usage="InOut" Required="true" Visible="true" ExternalAccess="Read/Write" />
+        </Parameters>
+        <LocalTags />
+        <Routines>
+          <Routine Name="AoiOnlineEdit" Type="ST">
+            <Description>
+              <![CDATA[AOI routine with an online edit in progress]]>
+            </Description>
+            <STContent OnlineEditType="Original">
+              <Line Number="0"><![CDATA[Counter := Counter + 1;]]></Line>
+              <Line Number="1"><![CDATA[(* original logic *)]]></Line>
+            </STContent>
+            <STContent OnlineEditType="Pending">
+              <Line Number="0"><![CDATA[Counter := Counter + 2;]]></Line>
+              <Line Number="1"><![CDATA[(* pending logic *)]]></Line>
+              <Line Number="2"><![CDATA[IF Counter > 10 THEN Counter := 0; END_IF;]]></Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </AddOnInstruction>
+    </AddOnInstructionDefinitions>
+    <Tags />
+    <Programs>
+      <Program Name="MainProgram" TestEdits="false" MainRoutineName="ProgramOnlineEdit" Disabled="false" UseAsFolder="false">
+        <Tags />
+        <Routines>
+          <Routine Name="ProgramOnlineEdit" Type="ST">
+            <Description>
+              <![CDATA[Program routine mixing accepted and pending content]]>
+            </Description>
+            <STContent>
+              <Line Number="0"><![CDATA[(* accepted content, no OnlineEditType *)]]></Line>
+              <Line Number="1"><![CDATA[StAoi(LocalCounter);]]></Line>
+            </STContent>
+            <STContent OnlineEditType="Pending">
+              <Line Number="0"><![CDATA[(* pending content *)]]></Line>
+            </STContent>
+          </Routine>
+        </Routines>
+      </Program>
+    </Programs>
+    <Tasks>
+      <Task Name="MainTask" Type="CONTINUOUS" Rate="10" Priority="10" Watchdog="500" DisableUpdateOutputs="false" InhibitTask="false">
+        <ScheduledPrograms>
+          <ScheduledProgram Name="MainProgram" />
+        </ScheduledPrograms>
+      </Task>
+    </Tasks>
+  </Controller>
+</RSLogix5000Content>

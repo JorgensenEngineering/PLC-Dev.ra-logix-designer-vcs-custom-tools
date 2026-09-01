@@ -126,7 +126,7 @@ Update to a matching version of this tool.
 The fix is to upgrade your copy of the tool to match — the exploded content itself is fine.
 
 Directories exploded before schema stamping was introduced are treated as version 1 and still
-implode.  However early versions of this tool lack any schema vresion check, and may produce
+implode.  However early versions of this tool lack any schema version check, and may produce
 inconsistent results if asked to implode a newer exploded schema.
 
 ## Integration with Logix Designer
